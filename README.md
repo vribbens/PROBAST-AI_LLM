@@ -46,7 +46,17 @@ Also consult the requirements.txt file
 
 ## Input Data
 Place all PDF files to be assessed in the input directory:
-
+```text
+data/
+2
+├── PROBAST_AIguidance.pdf
+3
+├── paper_1.pdf
+4
+├── paper_2.pdf
+5
+└── paper_3.pdf
+```
 The PROBAST+AI guidance document is used as retrieval context for the assessment process.
 
 ## Citation
