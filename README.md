@@ -29,13 +29,25 @@ This implementation:
 
 ## Requirements
 free RAM >= 23GB
-python >= 3.10
-CUDA >= 11.8
 
+python >= 3.10
+
+CUDA >= 11.8
+data/
+2
+├── PROBAST_AIguidance.pdf
+3
+├── paper_1.pdf
+4
+├── paper_2.pdf
+5
+└── paper_3.pdf
 Also consult the requirements.txt file
 
 ## Input Data
 Place all PDF files to be assessed in the input directory:
+
+The PROBAST+AI guidance document is used as retrieval context for the assessment process.
 
 ## Citation
 If you use this work, please cite:
