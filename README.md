@@ -20,13 +20,34 @@ This implementation:
     - Evidence overlap (Jaccard similarity)
     - Semantic answer similarity
 
-If you use this work in any way, please cite it as:
+## Main scripts
+| Script   | Purpose |
+|----------|----------|
+| PROBAST_AI.py   | Runs the PROBAST+AI assessment pipeline   |
+| LLM_output_validation.py   | Aggregates multiple runs into consensus outputs   |
+| job.slurm | SLURM job script for HPC execution |
 
+## Requirements
+free RAM >= 23GB
+python >= 3.10
+CUDA >= 11.8
+
+Also consult the requirements.txt file
+
+## Input Data
+Place all PDF files to be assessed in the input directory:
+
+## Citation
+If you use this work, please cite:
+```bibtex
 @software{PROBAST-AI_LLM,
-  author    = {Ribbens, Vincent},
-  title     = {}},
-  year      = {2026},
-  publisher = {},
-  doi       = {10.5281/zenodo.20155321},
-  url       = {https://github.com/vribbens/PROBAST-AI_LLM/}
+  author = {Ribbens, Vincent},
+  title = {Automated PROBAST+AI assessment of AI-based prediction model studies using Large Language Models (LLMs)},
+  year = {2026},
+  publisher = {GitHub},
+  url = {https://github.com/vribbens/PROBAST-AI_LLM}
 }
+```
+or
+
+Ribbens, V.J. (2026). *Automated PROBAST+AI assessment of AI-based prediction model studies using Large Language Models (LLMs)* [Software]. GitHub. https://github.com/vribbens/PROBAST-AI_LLM
