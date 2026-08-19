@@ -15,10 +15,10 @@ This implementation:
 5. Performs repeated independent assessment runs.
 6. Aggregates multiple runs into a consensus assessment.
 7. Quantifies agreement between runs using:
-    - Type consistency
-    - Ordinal agreement
-    - Evidence overlap (Jaccard similarity)
-    - Semantic answer similarity
+    - Chunk Jaccard Similarity score
+    - Average agreement
+    - Average ordinal agreement
+    - Semantic justification similarity
 
 ## Main scripts
 | Script   | Purpose |
