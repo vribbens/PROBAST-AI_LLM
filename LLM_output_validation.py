@@ -41,12 +41,7 @@ from transformers import AutoModel, AutoTokenizer
 from tqdm import tqdm
 
 
-# try:
-#     from sentence_transformers import SentenceTransformer
-#     import numpy as np
-#     _EMBEDDINGS_AVAILABLE = True
-# except ImportError:
-#     _EMBEDDINGS_AVAILABLE = False
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
