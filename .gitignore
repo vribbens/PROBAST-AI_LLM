@@ -1,0 +1,44 @@
+# Ignore data files
+data/
+*.csv
+*.tsv
+*.xlsx
+*.json
+
+# Ignore figures
+figures/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# Ignore notebooks checkpoints
+.ipynb_checkpoints/
+
+# Ignore temporary/editor/system files
+*.log
+*.tmp
+*.DS_Store
+*.swp
+*.txt
+*andbak.py
+*test.py
+*settings.py
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+
+# VS Code settings (optional)
+.vscode/
+
+# Ignore read me files
+*.md
+props_analysis
+
+# Ignore Weights & Biases logs
+wandb/
+
+# Ignore .env files 
+.env
