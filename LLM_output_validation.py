@@ -1,18 +1,3 @@
-"""
-
-Aggregate multiple LLM-assessment runs (PROBAST-AI style JSON outputs) into a
-single consensus file per paper.
-
-For every question asked of every paper, across all runs, this script:
-  1. Computes a consensus answer (majority vote, case/whitespace-normalized).
-  2. Computes the mean pairwise Jaccard similarity of the chunk_ids cited by
-     each run (i.e. how much the evidence chunks overlap between runs).
-  3. Optionally computes mean pairwise semantic (embedding) similarity between
-     the actual answer texts, for cases where answers are worded differently
-     but mean the same thing.
-
-"""
-
 # load modules
 import sys
 print("sys.path:", sys.path)
@@ -31,6 +16,8 @@ import argparse
 import json
 import logging
 import numpy as np
+import os
+import pandas as pd
 
 from collections import Counter, defaultdict
 from huggingface_hub import hf_hub_download
@@ -38,15 +25,6 @@ from itertools import combinations
 from pathlib import Path
 from statistics import mean
 from transformers import AutoModel, AutoTokenizer
-from tqdm import tqdm
-
-
-# try:
-#     from sentence_transformers import SentenceTransformer
-#     import numpy as np
-#     _EMBEDDINGS_AVAILABLE = True
-# except ImportError:
-#     _EMBEDDINGS_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -326,7 +304,6 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
         top_normalized, top_count = norm_counts.most_common(1)[0]
  
         # Use the most common *original* spelling among that normalized group
-        # so the output reads naturally instead of always lowercase.
         original_variants = Counter(
             a for a, n in zip(answers, normalized) if n == top_normalized
         )
@@ -364,9 +341,9 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
  
     return consensus_results
 
-def compute_overall_assessment_agreement(consensus_results):
-        # load the json
-    data_summary = pd.read_json(consensus_results)
+def compute_overall_assessment_agreement(output_dir):
+    # load the json
+    data_summary = pd.read_json(os.path.join(output_dir, "_SUMMARY.json"))
 
     # calculate average jaccard for chunks over all papers
     avg_chunk_jaccard = data_summary['papers'].apply(lambda x: x['avg_chunk_jaccard']).mean()
@@ -380,8 +357,8 @@ def compute_overall_assessment_agreement(consensus_results):
     all_avg_agreements_ordinal = []
     all_avg_agreements = []
     for paper in data_summary['papers']:
-        # paper = next(p for p in data_summary['papers'] if p['paper'] == 'Zhao2022')  # Load the specific paper for testing
-        filename = os.path.join(folder, paper['paper'] + '_CONSENSUS.json')
+        # paper = next(p for p in data_summary['papers'] if p['paper'] == 'papername')  # Load the specific paper for testing
+        filename = os.path.join(output_dir, paper['paper'] + '_CONSENSUS.json')
 
         # Load json data for the specific paper
         with open(filename) as f: 
@@ -460,8 +437,7 @@ def main(args):
         logger.info("Processing %s", paper_name)
         consensus_results = build_consensus_for_paper(paper_name, runs, embedder)
  
-        # Separate real per-domain questions from per-domain overall-assessment
-        # summaries (tagged via record_type, set in get_question_records).
+        # Separate real per-domain questions from per-domain overall-assessment summaries (tagged via record_type, set in get_question_records).
         question_records = [r for r in consensus_results if r["record_type"] == "question"]
         domain_summary_records = [r for r in consensus_results if r["record_type"] == "summary"]
  
@@ -513,7 +489,7 @@ def main(args):
         output_dir / "_SUMMARY.json",
     )
  
-    compute_overall_assessment_agreement(output_dir / "_SUMMARY.json")
+    compute_overall_assessment_agreement(output_dir)
 
     logger.info("Done. Wrote %d consensus files (+ _SUMMARY.json) to %s",
                 len(summary_rows), output_dir)
