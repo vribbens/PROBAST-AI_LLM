@@ -41,7 +41,12 @@ from transformers import AutoModel, AutoTokenizer
 from tqdm import tqdm
 
 
-
+# try:
+#     from sentence_transformers import SentenceTransformer
+#     import numpy as np
+#     _EMBEDDINGS_AVAILABLE = True
+# except ImportError:
+#     _EMBEDDINGS_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -308,11 +313,12 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
             aggregated[key]["answers"].append(q["answer"])
             aggregated[key]["chunk_ids"].append(q["chunk_ids"])
             aggregated[key]["record_type"] = q["record_type"]
-            # aggregated[key]["justification"].append(q["justification"])
+            aggregated[key]["justification"].append(q.get("justification") or "")
  
     consensus_results = []
     for (assessment_type, domain, question), data in aggregated.items():
         answers = data["answers"]
+        justifications = data["justification"]
         chunk_id_lists = data["chunk_ids"]
  
         normalized = [normalize_answer(a) for a in answers]
@@ -349,12 +355,74 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
         }
  
         if embedder is not None:
-            sim = mean_pairwise_answer_similarity(embedder, answers)
-            record["mean_answer_similarity"] = round(sim, 3) if sim is not None else None
+            # sim = mean_pairwise_answer_similarity(embedder, answers)
+            # record["mean_answer_similarity"] = round(sim, 3) if sim is not None else None
+            sim = mean_pairwise_answer_similarity(embedder, justifications)
+            record["mean_justification_similarity"] = round(sim, 3) if sim is not None else None
  
         consensus_results.append(record)
  
     return consensus_results
+
+def compute_overall_assessment_agreement(consensus_results):
+        # load the json
+    data_summary = pd.read_json(consensus_results)
+
+    # calculate average jaccard for chunks over all papers
+    avg_chunk_jaccard = data_summary['papers'].apply(lambda x: x['avg_chunk_jaccard']).mean()
+    lowest_chunk_jaccard = data_summary['papers'].apply(lambda x: x['avg_chunk_jaccard']).min()
+    highest_chunk_jaccard = data_summary['papers'].apply(lambda x: x['avg_chunk_jaccard']).max()
+    print(f"Average chunk jaccard: {avg_chunk_jaccard:.4f}")
+    print(f"Lowest chunk jaccard: {lowest_chunk_jaccard:.4f}")
+    print(f"Highest chunk jaccard: {highest_chunk_jaccard:.4f}")
+
+    # Calculate average ordinal agreement per paper and then over all papers
+    all_avg_agreements_ordinal = []
+    all_avg_agreements = []
+    for paper in data_summary['papers']:
+        # paper = next(p for p in data_summary['papers'] if p['paper'] == 'Zhao2022')  # Load the specific paper for testing
+        filename = os.path.join(folder, paper['paper'] + '_CONSENSUS.json')
+
+        # Load json data for the specific paper
+        with open(filename) as f: 
+            data = json.load(f)
+
+        ordinal_agreements = []
+        for question in data['questions']:
+            if 'ordinal agreement' in question and question['ordinal agreement'] != 'N/A (no substantive answers)':
+                ordinal_agreements.append(float(question['ordinal agreement']))
+        avg_ordinal_agreement = np.mean(ordinal_agreements) if ordinal_agreements else None
+
+        if avg_ordinal_agreement is not None:
+            print(f"Average ordinal agreement for {paper['paper']}: {avg_ordinal_agreement:.4f}")
+            all_avg_agreements_ordinal.append(avg_ordinal_agreement)
+        else:
+            print(f"No ordinal agreement data for {paper['paper']}")
+
+        normal_agreements = []
+        for question in data['questions']:
+            if 'agreement' in question:
+                normal_agreements.append(float(question['agreement']))
+
+        avg_agreement = np.mean(normal_agreements) if normal_agreements else None
+        if avg_agreement is not None:
+            print(f"Average agreement for {paper['paper']}: {avg_agreement:.4f}")
+            all_avg_agreements.append(avg_agreement)
+        else:
+            print(f"No agreement data for {paper['paper']}")
+
+    # Overall average across all papers
+    overall_avg_ordinal = np.mean(all_avg_agreements_ordinal) if all_avg_agreements_ordinal else None
+    if overall_avg_ordinal is not None:
+        print(f"\nOverall average ordinal agreement across {len(all_avg_agreements_ordinal)} papers: {overall_avg_ordinal:.4f}")
+    else:
+        print("\nNo ordinal agreement data found across any papers.")
+
+    overall_avg_agreement = np.mean(all_avg_agreements) if all_avg_agreements else None
+    if overall_avg_agreement is not None:
+        print(f"Overall average agreement across {len(all_avg_agreements)} papers: {overall_avg_agreement:.4f}")
+    else:
+        print("No agreement data found across any papers.")
 
 # --------------------------------------------------------------------------- #
 # Main
@@ -405,8 +473,8 @@ def main(args):
                 "agreement": r["agreement"],
                 "n_runs_with_answer": r["n_runs_with_answer"],
                 "answer_distribution": r["answer_distribution"],
-                **({"mean_answer_similarity": r["mean_answer_similarity"]}
-                   if "mean_answer_similarity" in r else {}),
+                **({"mean_justification_similarity": r["mean_justification_similarity"]}
+                   if "mean_justification_similarity" in r else {}),
             }
 
         overall_summary = dict(overall_summary)  # plain dict for clean JSON output
@@ -445,6 +513,8 @@ def main(args):
         output_dir / "_SUMMARY.json",
     )
  
+    compute_overall_assessment_agreement(output_dir / "_SUMMARY.json")
+
     logger.info("Done. Wrote %d consensus files (+ _SUMMARY.json) to %s",
                 len(summary_rows), output_dir)
 
