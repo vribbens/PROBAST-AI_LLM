@@ -47,13 +47,13 @@ data/
 ```
 The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper.
 
-## Agreement metrics
+## Metrics
 ### Chunk Jaccard Similarity score
 Calculates the mean Jaccard score based on the index of the selected chunks for each question over all runs per paper. The idea is that the higher the chunk selection similarity across runs, the more consistent the LLM output will become.
-### Agreement score
+### Majority agreement score
 Calculates per paper the answer consistency over all runs per question. E.g. if the most frequent answer was 3 times 'Yes' to a specific question over 5 runs, the agreement score is 0.6. The average agreement score is agreement score over all questions per paper.
 ### Ordinal Agreement
-The ordinal agreement score tries to perform a correction on the earlier agreement score by penalising more distinct answers ('Yes' vs 'No') more heavily than similar answers ('Yes' vs. 'Probably Yes'). It only works for 'SUBSTANTIVE' answers, e.g. we chose to not put 'No Info' and 'Not applicable' in the ordinal scale. If these answers are present, the ordinal agreement cant be calculated for that specific question. 
+The ordinal agreement score tries to perform a correction on the earlier agreement score by penalising more distinct answers ('Yes' vs 'No') more heavily than similar answers ('Yes' vs. 'Probably Yes') with respect to the majority score. The distance between 'Not Applicable' and 'No Information' and all other labels is always 1.0 similar to 'No' versus 'Yes'.
 Uses the scale:
 1. No = 0.00
 2. Probably No = 0.33
@@ -61,14 +61,12 @@ Uses the scale:
 4. Yes = 1.00
 ### Semantic similarity of justification
 Optional embedding-based similarity of answer justifications using BGE-M3 embeddings. This is another way to score the consistency of the LLM output across multiple runs. 
-
 ### Weighted lineair Cohen's kappa
 Uses the scale:
 1. No = 0.00
 2. Probably No = 0.33
 3. Probably Yes = 0.67
 4. Yes = 1.00
-
 The distance between Not applicable, no information and other signalling question labels is always 1.0. The distance between low, high and unclear is also one.
 
 ## Citation
