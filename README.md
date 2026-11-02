@@ -75,4 +75,4 @@ If you use this work, please cite:
 ```
 or
 
-Ribbens, V.J. (2026). *Automated PROBAST+AI assessment of AI-based prediction model studies using Large Language Models (LLMs)* [Software]. GitHub. https://github.com/vribbens/PROBAST-AI_LLM
+Ribbens, V.J. (2026). *Automated PROBAST+AI assessment of AI-based prediction model studies using locally run Large Language Models (LLMs)* [Software]. GitHub. https://github.com/vribbens/PROBAST-AI_LLM
