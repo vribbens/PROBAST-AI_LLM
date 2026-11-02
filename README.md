@@ -62,6 +62,15 @@ Uses the scale:
 ### Semantic similarity of justification
 Optional embedding-based similarity of answer justifications using BGE-M3 embeddings. This is another way to score the consistency of the LLM output across multiple runs. 
 
+### Weighted lineair Cohen's kappa
+Uses the scale:
+1. No = 0.00
+2. Probably No = 0.33
+3. Probably Yes = 0.67
+4. Yes = 1.00
+
+The distance between Not applicable, no information and other signalling question labels is always 1.0. The distance between low, high and unclear is also one.
+
 ## Citation
 If you use this work, please cite:
 ```bibtex
