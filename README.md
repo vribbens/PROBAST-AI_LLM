@@ -45,7 +45,7 @@ data/
 ...
 └── paper_n.pdf
 ```
-The PROBAST+AI guidance document is used as retrieval context for the assessment process.
+The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper.
 
 ## Agreement metrics
 ### Chunk Jaccard Similarity score
