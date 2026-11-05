@@ -81,7 +81,7 @@ Ordinal agreement is calculated using the scale:
 The labels NI, NA, high, low, and unclear are considered non-ordinal. Any comparison involving one of these labels and a different label is assigned a disagreement of 1.0 (maximum disagreement). Identical labels always receive a disagreement of 0.0.
 
 Ordinal agreement is calculated as:
-1−Observed disagreementExpected disagreement1 - \frac{\text{Observed disagreement}}{\text{Expected disagreement}}1−Expected disagreementObserved disagreement​
+1 - (observed_disagreement / expected_disagreement)​
 
 where expected disagreement is derived from the marginal label distributions.
 
@@ -89,11 +89,10 @@ where expected disagreement is derived from the marginal label distributions.
 ### Consensus change rate
 This metric quantifies how often the final consensus differs from the original answer of Reviewer 1 (default: Human) when Reviewer 1 and Reviewer 2 (default: LLM) initially disagreed.
 The calculation consists of:
-
-Identifying all rows where Human and LLM provided different responses.
-Identifying how many of these rows resulted in a consensus label different from the Human label.
-Reporting:
-Consensus Change Rate=Number of changed answersNumber of disagreements\text{Consensus Change Rate} = \frac{\text{Number of changed answers}}{\text{Number of disagreements}}Consensus Change Rate=Number of disagreementsNumber of changed answers​
+1. Identifying all rows where Human and LLM provided different responses.
+2. Identifying how many of these rows resulted in a consensus label different from the Human label.
+3. Reporting:
+Consensus Change Rate=number_of_changed_answers / number_of_disagreements​
 
 ## Citation
 If you use this work, please cite:
