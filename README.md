@@ -1,31 +1,37 @@
-# PROBAST+AI
+# Risk Of Bias and Quality Assessment
 
-Automated PROBAST+AI assessment of AI-based prediction model studies using Large Language Models (LLMs).
+Automated risk of bias and quality assessment of AI-based prediction model studies using Large Language Models (LLMs) in a local environment.
 
-This repository contains code for performing PROBAST+AI assessments on scientific publications using retrieval-augmented generation (RAG) and local LLMs through Ollama. The pipeline extracts evidence from PDF manuscripts, retrieves relevant text chunks for each PROBAST+AI signalling question, generates assessments using an LLM, and aggregates multiple runs into consensus assessments.
+This repository contains code for performing PROBAST+AI assessments on scientific publications using retrieval-augmented generation (RAG) and local LLMs through Ollama. The pipeline extracts evidence from PDF manuscripts, retrieves relevant text chunks for each PROBAST+AI signalling question, generates assessments using an LLM, and aggregates multiple runs into consensus assessments. The code was adapted to also perform an adjusted QUADAS-2 assessment.
 
 ## Overview
-PROBAST+AI is an extension of the Prediction model Risk Of Bias ASsessment Tool (PROBAST) designed for evaluating AI-based prediction models.
+PROBAST+AI (2025) is an extension of the Prediction model Risk Of Bias ASsessment Tool (PROBAST) designed for evaluating AI-based prediction models.
+QUADAS-2 (2011) is an updated version of the original QUADAS (2003) risk of bias and applicability assessment concerning diagnostic accuracy studies. It stands for Quality Assessment of Diagnostic Accuracy Studies, version 2. 
 
 This implementation:
 1. Parses full-text PDF articles.
 2. Chunks and indexes manuscript text using BGE-M3 embeddings.
-3. Retrieves relevant manuscript sections for each PROBAST+AI signaling question.
+3. Retrieves relevant manuscript sections for each PROBAST+AI (or QUADAS-2) signaling question.
 4. Uses a local LLM (tested with Qwen 3.5 27B) to answer each question.
 5. Performs repeated independent assessment runs.
 6. Aggregates multiple runs into a consensus assessment.
-7. Quantifies agreement between runs using:
+7. Quantifies performance (range 0-1) across runs per question per paper using:
     - Chunk Jaccard Similarity score
-    - Average agreement
-    - Average ordinal agreement
-    - Semantic justification similarity
+    - Majority agreement for one question 
+    - Ordinal agreement for one question
+    - Semantic justification similarity (how much do the justifications per answer overlap for one question)
+   The metrics are all also averaged over all questions, papers and runs.
 
 ## Main scripts
 | Script   | Purpose |
 |----------|----------|
 | PROBAST_AI.py   | Runs the PROBAST+AI assessment pipeline   |
-| LLM_output_validation.py   | Aggregates multiple runs into consensus outputs   |
-| job.slurm | SLURM job script for HPC execution |
+| QUADAS-2.py   | Runs the PROBAST+AI assessment pipeline   |
+| LLM_output_validation.py   | Aggregates multiple runs into consensus outputs  |
+| LLM_human_consensus.py   | calculate agreement metrics between LLM and Human  |
+| job.slurm | SLURM job script for high-performance cluster execution  |
+| example_consensus.xlsx | example excel file for human-LLM consensus calculations  |
+
 
 ## Requirements
 free RAM >= 23GB
@@ -45,7 +51,7 @@ data/
 ...
 └── paper_n.pdf
 ```
-The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper.
+The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper. The guidance document can be replaced with any other document necessary for guidance i.e. a QUADAS-2 guidance document.
 
 ## Metrics
 ### Chunk Jaccard Similarity score
