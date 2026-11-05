@@ -1,6 +1,6 @@
 # Risk Of Bias, Quality and Applicability Assessment
 
-Automated risk of bias and quality assessment of AI-based prediction model studies using Large Language Models (LLMs) in a local environment.
+Automated risk of bias, quality and applicability assessment of AI-based prediction model studies using Large Language Models (LLMs) in a local environment.
 
 This repository contains code for performing PROBAST+AI assessments on scientific publications using retrieval-augmented generation (RAG) and local LLMs through Ollama. The pipeline extracts evidence from PDF manuscripts, retrieves relevant text chunks for each PROBAST+AI signalling question, generates assessments using an LLM, and aggregates multiple runs into consensus assessments. The code was adapted to also perform an adjusted QUADAS-2 assessment.
 
@@ -54,7 +54,6 @@ data/
 The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper. The guidance document can be replaced with any other document necessary for guidance i.e. a QUADAS-2 guidance document.
 
 ## LLM internal validation across run metrics
-
 ### Chunk Jaccard Similarity score
 Calculates the mean Jaccard score based on the index of the selected chunks for each question over all runs per paper. The idea is that the higher the chunk selection similarity across runs, the more consistent the LLM output will become.
 ### Majority agreement score
