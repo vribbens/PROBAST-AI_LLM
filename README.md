@@ -54,6 +54,7 @@ data/
 The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper. The guidance document can be replaced with any other document necessary for guidance i.e. a QUADAS-2 guidance document.
 
 ## Metrics
+LLM internal validation across run metrics: 
 ### Chunk Jaccard Similarity score
 Calculates the mean Jaccard score based on the index of the selected chunks for each question over all runs per paper. The idea is that the higher the chunk selection similarity across runs, the more consistent the LLM output will become.
 ### Majority agreement score
@@ -67,13 +68,32 @@ Uses the scale:
 4. Yes = 1.00
 ### Semantic similarity of justification
 Optional embedding-based similarity of answer justifications using BGE-M3 embeddings. This is another way to score the consistency of the LLM output across multiple runs. 
+
+Human - LLM consensus metrics:
+### Unweighted Cohen's kappa
+All labels are treated as nominal categories, meaning every disagreement is weighted equally regardless of its magnitude.
 ### Weighted lineair Cohen's kappa
-Uses the scale:
+Ordinal agreement is calculated using the scale:
 1. No = 0.00
 2. Probably No = 0.33
 3. Probably Yes = 0.67
 4. Yes = 1.00
-The distance between Not applicable, no information and other signalling question labels is always 1.0. The distance between low, high and unclear is also one.
+The labels NI, NA, high, low, and unclear are considered non-ordinal. Any comparison involving one of these labels and a different label is assigned a disagreement of 1.0 (maximum disagreement). Identical labels always receive a disagreement of 0.0.
+
+Ordinal agreement is calculated as:
+1−Observed disagreementExpected disagreement1 - \frac{\text{Observed disagreement}}{\text{Expected disagreement}}1−Expected disagreementObserved disagreement​
+
+where expected disagreement is derived from the marginal label distributions.
+
+
+### Consensus change rate
+This metric quantifies how often the final consensus differs from the original answer of Reviewer 1 (default: Human) when Reviewer 1 and Reviewer 2 (default: LLM) initially disagreed.
+The calculation consists of:
+
+Identifying all rows where Human and LLM provided different responses.
+Identifying how many of these rows resulted in a consensus label different from the Human label.
+Reporting:
+Consensus Change Rate=Number of changed answersNumber of disagreements\text{Consensus Change Rate} = \frac{\text{Number of changed answers}}{\text{Number of disagreements}}Consensus Change Rate=Number of disagreementsNumber of changed answers​
 
 ## Citation
 If you use this work, please cite:
