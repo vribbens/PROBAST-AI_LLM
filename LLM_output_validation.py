@@ -1,3 +1,16 @@
+"""
+Aggregate multiple LLM-assessment runs (PROBAST-AI style JSON outputs) into a
+single consensus file per paper.
+
+For every question asked of every paper, across all runs, this script:
+  1. Computes a consensus answer (majority vote, case/whitespace-normalized).
+  2. Computes the mean pairwise Jaccard similarity of the chunk_ids cited by
+     each run (i.e. how much the evidence chunks overlap between runs).
+  3. Optionally computes mean pairwise semantic (embedding) similarity between
+     the actual answer texts, for cases where answers are worded differently
+     but mean the same thing.
+
+"""
 # load modules
 import sys
 print("sys.path:", sys.path)
@@ -31,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 # Global constants
 SUMMARY_QUESTION_KEY = "overall_assessment"  # synthetic question name for domain-level summaries
-ORDINAL_SCALE = {"No": 0.0, "Probably No": 0.33, "Probably Yes": 0.67, "Yes": 1.0}
+ORDINAL_SCALE = {"no": 0.0, "probably no": 0.33, "probably yes": 0.67, "yes": 1.0}
 
 # --------------------------------------------------------------------------- #
 # I/O helpers
@@ -120,37 +133,31 @@ def jaccard_similarity(set_a: set, set_b: set) -> float:
         return 1.0
     return len(set_a & set_b) / len(union)
 
-def response_type(answer):
-    if answer == "Not Applicable":
-        return "NA"
-    if answer == "No Information":
-        return "NO_INFO"
-    return "SUBSTANTIVE"
+def pair_distance(a, b):
+    """a, b are normalized answers. Off-scale (NA / NI / anything else) mismatch = 1."""
+    if a == b:
+        return 0.0
+    if a in ORDINAL_SCALE and b in ORDINAL_SCALE:
+        return abs(ORDINAL_SCALE[a] - ORDINAL_SCALE[b])
+    return 1.0
 
-def ordinal_agreement(answers):
-    """Agreement score in [0,1] based on average pairwise distance."""
-    values = [ORDINAL_SCALE[a] for a in answers if a in ORDINAL_SCALE]
-    if len(values) < 2:
-        return 1.0 if values else 0.0  # single answer = trivially "agrees" with itself
-
-    pairs = [(v1, v2) for i, v1 in enumerate(values) for v2 in values[i+1:]]
-    avg_distance = sum(abs(v1 - v2) for v1, v2 in pairs) / len(pairs)
-    return 1 - avg_distance  # max possible distance is 1.0, so this stays in [0,1]
+def ordinal_score_vs_reference(ref, normalized):
+        return 1 - mean(pair_distance(a, ref) for a in normalized)
 
 def compute_question_agreement(answers):
-    types = [response_type(a) for a in answers]
-    type_counts = Counter(types)
-    dominant_type, dominant_count = type_counts.most_common(1)[0]
-    type_consistency = dominant_count / len(answers)  # did runs agree on answerability?
+    normalized = [normalize_answer(a) for a in answers]
+    counts = Counter(normalized)
+    top_count = max(counts.values())
+    modes = sorted(a for a, c in counts.items() if c == top_count)
 
-    substantive = [a for a in answers if response_type(a) == "SUBSTANTIVE"]
-    ordinal_score = ordinal_agreement(substantive) if substantive else None
+    # on a tie, pick the modal label with the highest ordinal score (first alphabetically if still tied)
+    best = max(modes, key=lambda m: ordinal_score_vs_reference(m, normalized))
 
     return {
-        "type_consistency": type_consistency,      # e.g. 1.0 if all 5 runs gave a substantive/NA/No-Info answer consistently
-        "ordinal_agreement": ordinal_score,          # None if no substantive answers to compare, else 0-1
-        "dominant_type": dominant_type,
-        "raw_answers": answers,
+        "majority_agreement": top_count / len(normalized),
+        "ordinal_agreement": ordinal_score_vs_reference(best, normalized),
+        "is_tie": len(modes) > 1,
+        "consensus_label": best,
     }
 
 def mean_pairwise_jaccard(chunk_id_lists):
@@ -265,6 +272,8 @@ def load_runs(run_dirs, pattern: str):
                 paper_name = file.stem.split("_PROBASTAI")[0]
             elif "QUADAS" in file.stem:
                 paper_name = file.stem.split("_QUADAS2")[0]
+            else: 
+                continue  # skip files that don't match expected patterns
             try:
                 run_files[paper_name] = load_json(file)
             except (json.JSONDecodeError, OSError) as exc:
@@ -273,6 +282,8 @@ def load_runs(run_dirs, pattern: str):
         logger.info("Loaded %d papers from %s", len(run_files), folder)
     return runs
 
+def r3(x):
+    return round(x, 3) if x is not None else None
 
 # --------------------------------------------------------------------------- #
 # Consensus computation
@@ -299,18 +310,15 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
         justifications = data["justification"]
         chunk_id_lists = data["chunk_ids"]
  
+        agreement = compute_question_agreement(answers)
         normalized = [normalize_answer(a) for a in answers]
-        norm_counts = Counter(normalized)
-        top_normalized, top_count = norm_counts.most_common(1)[0]
- 
-        # Use the most common *original* spelling among that normalized group
+
+        # most common original spelling of the chosen modal label
         original_variants = Counter(
-            a for a, n in zip(answers, normalized) if n == top_normalized
+            a for a, n in zip(answers, normalized) if n == agreement["consensus_label"]
         )
         consensus_answer = original_variants.most_common(1)[0][0]
- 
-        # agreement = top_count / len(answers) if answers else 0.0
-        agreement = compute_question_agreement(answers)
+
         mean_jaccard = mean_pairwise_jaccard(chunk_id_lists)
  
         record = {
@@ -321,15 +329,20 @@ def build_consensus_for_paper(paper_name, runs, embedder=None):
             # "justification": data["justification"][0] if "justification" in data and data["justification"] else None,  # take the justification from the first run (if any)
             "consensus_answer": consensus_answer,
             "n_runs_with_answer": len(answers),
-            "dominant_type": agreement["dominant_type"],
-            "agreement": round(agreement["type_consistency"], 3), # to what extent did runs agree on answerability (substantive vs NA vs No Info)
-            "ordinal agreement": (
-                round(agreement["ordinal_agreement"], 3)
-                if agreement["ordinal_agreement"] is not None
-                else "N/A (no substantive answers)"),      
+            # "dominant_type": agreement["dominant_type"],
+            
+            "majority_agreement": round(agreement["majority_agreement"], 3),
+            "ordinal": round(agreement["ordinal_agreement"], 3) if agreement["ordinal_agreement"] is not None else None,
+                        "is_tie": agreement["is_tie"],
+
+            # "agreement": round(agreement["type_consistency"], 3), # to what extent did runs agree on answerability (substantive vs NA vs No Info)
+            # "ordinal agreement": (
+            #     round(agreement["ordinal_agreement"], 3)
+            #     if agreement["ordinal_agreement"] is not None
+            #     else "N/A (no substantive answers)"),      
             "mean_chunk_jaccard": round(mean_jaccard, 3),
             "answer_distribution": dict(sorted(Counter(answers).items(), key=lambda x: x[1], reverse=True)),
-        }
+            }
  
         if embedder is not None:
             # sim = mean_pairwise_answer_similarity(embedder, answers)
@@ -446,11 +459,12 @@ def main(args):
         for r in domain_summary_records:
             overall_summary[r["assessment_type"]][r["domain"]] = {
                 "consensus_overall_assessment": r["consensus_answer"],
-                "agreement": r["agreement"],
+                "majority_agreement": r["majority_agreement"],
+                "is_tie": r["is_tie"],
                 "n_runs_with_answer": r["n_runs_with_answer"],
                 "answer_distribution": r["answer_distribution"],
                 **({"mean_justification_similarity": r["mean_justification_similarity"]}
-                   if "mean_justification_similarity" in r else {}),
+                if "mean_justification_similarity" in r else {}),
             }
 
         overall_summary = dict(overall_summary)  # plain dict for clean JSON output
@@ -465,19 +479,22 @@ def main(args):
         save_json(output, output_dir / f"{paper_name}_CONSENSUS.json")
  
         if question_records:
-            avg_agreement = mean(r["agreement"] for r in question_records)
+            avg_majority = mean(r["majority_agreement"] for r in question_records)
+            ords = [r["ordinal"] for r in question_records if r["ordinal"] is not None]
+            avg_ordinal = mean(ords) if ords else None
             avg_jaccard = mean(r["mean_chunk_jaccard"] for r in question_records)
         else:
-            avg_agreement = avg_jaccard = 0.0
- 
+            avg_majority = avg_ordinal = avg_jaccard = None
+
         summary_rows.append({
             "paper": paper_name,
             "n_questions": len(question_records),
-            "avg_agreement": round(avg_agreement, 3), # average agreement over all questions based on the accuracy (3x yes out of 5 = 0.6)
-            "avg_chunk_jaccard": round(avg_jaccard, 3),
+            "avg_majority_agreement": r3(avg_majority),
+            "avg_ordinal_agreement": r3(avg_ordinal),
+            "avg_chunk_jaccard": r3(avg_jaccard),
             "overall_assessment_agreement": {
                 assessment_type: {
-                    domain: domain_data["agreement"]
+                    domain: domain_data["majority_agreement"]
                     for domain, domain_data in domains.items()
                 }
                 for assessment_type, domains in overall_summary.items()

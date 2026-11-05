@@ -232,6 +232,7 @@ def build_index(chunks, model):
     dense_index = faiss.IndexFlatIP(dim)
     dense_index.add(dense_vecs)
 
+    # Sparse "index" is just the list of weight dicts — BGE-M3 scores these directly
     return {
         "dense_index": dense_index,
         "sparse_weights": sparse_weights,
@@ -252,7 +253,11 @@ def retrieve(question, model, index_bundle, k=5, dense_weight=0.6, sparse_weight
     sparse_weights = index_bundle["sparse_weights"]
 
     # Encode query — dense + sparse, no instruction prefix needed for BGE-M3
-    q_output = model.encode([question],return_dense=True,return_sparse=True)
+    q_output = model.encode(
+        [question],
+        return_dense=True,
+        return_sparse=True,
+    )
     q_dense = np.array(q_output["dense_vecs"], dtype=np.float32)
     faiss.normalize_L2(q_dense)
     q_sparse = q_output["lexical_weights"][0]

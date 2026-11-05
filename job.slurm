@@ -4,10 +4,10 @@
 #SBATCH --gres=gpu:L40S:1
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks=1
-#SBATCH --mem=24GB 
+#SBATCH --mem=24GB
 #SBATCH --time=48:00:00
-#SBATCH --output= # choose your output path
-#SBATCH --error=# choose your error path
+#SBATCH --output=/exports/icu-hpc/sys_review_hemo/users/%u/slurm-logs/probast_qwen3_%j.out
+#SBATCH --error=/exports/icu-hpc/sys_review_hemo/users/%u/slurm-logs/probast_qwen3_%j.err
 
 set -euo pipefail
 
@@ -18,12 +18,12 @@ module load tools/miniconda/python3.10/23.3.1
 module load ai/llm/ollama/0.30.10/gcc-8.5.0
 
 # 2) Paths
-RISK_ASS='PROBASTAI' # What is the end of each file name in the directory? Write that down here (PROBASTAI)
-USER_ROOT=""
+RISK_ASS='PROBASTAI' # What is the end of each file name in the directory? Write that down here PROBASTAI / QUADAS2
+USER_ROOT="" 
 REPO="$USER_ROOT/code"
 LOG_DIR="$USER_ROOT/slurm-logs"
-OUT_DIR="$USER_ROOT/results/probast-qwen3-${SLURM_JOB_ID}"
-DATA_DIR=""
+OUT_DIR="$USER_ROOT/users/vjribbens/results/probast-qwen3-${SLURM_JOB_ID}"
+DATA_DIR="$USER_ROOT/data/papers"
 PYTHON=""
 
 mkdir -p "$LOG_DIR" "$OUT_DIR"
@@ -31,14 +31,15 @@ mkdir -p "$LOG_DIR" "$OUT_DIR"
 # 3) Environment variables
 export CONDARC="$USER_ROOT/conda/condarc"
 export CONDA_PKGS_DIRS="$USER_ROOT/conda/pkgs"
-export PIP_CACHE_DIR=""
-export HF_HOME=""
-export OLLAMA_MODELS=""
+export PIP_CACHE_DIR="$USER_ROOT/pip-cache"
+export HF_HOME="$USER_ROOT/huggingface_cache"
+export OLLAMA_MODELS="$USER_ROOT/ollama_models"
 export PYTHONDONTWRITEBYTECODE=1
+export $(cat /exports/icu-hpc/sys_review_hemo/.env | xargs)
 export OLLAMA_KEEP_ALIVE=-1
 
 # 4) Activate env
-source activate "" # paste here your environment path
+source activate ""
 
 # 5) Sanity checks
 echo "Python: $(which python)"
@@ -73,7 +74,7 @@ GPU_LOG_PID=$!
 trap 'echo "Cleaning up..."; kill $OLLAMA_PID 2>/dev/null || true; kill $GPU_LOG_PID 2>/dev/null || true' EXIT
 
 # 8) Pull model if not already available
-MODEL="qwen3.5:27b"  # "qwen3.5:27b"
+MODEL="qwen3.5:27b"  # "qwen3.5:27b" or qwen3:32b
 echo "Checking for ${MODEL}..."
 if ollama list | grep -q "${MODEL}"; then
     echo "${MODEL} already available, skipping pull."
@@ -86,7 +87,7 @@ fi
 cd "$REPO"
 echo "[$(date)] Output dir: $OUT_DIR"
 
-srun "$PYTHON" -u PROBAST_better.py \
+srun "$PYTHON" -u PROBAST_AI.py \
     --data_dir "$DATA_DIR" \
     --output_dir "$OUT_DIR" \
     --model_name "${MODEL}" \
