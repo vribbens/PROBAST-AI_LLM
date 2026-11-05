@@ -2,7 +2,7 @@
 data/
 *.csv
 *.tsv
-*.xlsx
+# *.xlsx 
 *.json
 
 # Ignore figures
