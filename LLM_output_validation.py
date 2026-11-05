@@ -149,7 +149,6 @@ def compute_question_agreement(answers):
     counts = Counter(normalized)
     top_count = max(counts.values())
     modes = sorted(a for a, c in counts.items() if c == top_count)
-
     # on a tie, pick the modal label with the highest ordinal score (first alphabetically if still tied)
     best = max(modes, key=lambda m: ordinal_score_vs_reference(m, normalized))
 
