@@ -34,12 +34,14 @@ This implementation:
 
 
 ## Requirements
+Consult the requirements.txt file
+
 free RAM >= 23GB
 
 python >= 3.10
 
 CUDA >= 11.8
-Also consult the requirements.txt file
+
 
 ## Input Data
 Place all PDF files to be assessed in the input directory:
