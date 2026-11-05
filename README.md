@@ -53,8 +53,8 @@ data/
 ```
 The PROBAST+AI guidance document is used as retrieval context for the assessment process. To add supplemental files, merge the manuscript pdf with the supplemental files prior to running the script to create one pdf per paper. The guidance document can be replaced with any other document necessary for guidance i.e. a QUADAS-2 guidance document.
 
-## Metrics
-LLM internal validation across run metrics: 
+## LLM internal validation across run metrics
+
 ### Chunk Jaccard Similarity score
 Calculates the mean Jaccard score based on the index of the selected chunks for each question over all runs per paper. The idea is that the higher the chunk selection similarity across runs, the more consistent the LLM output will become.
 ### Majority agreement score
@@ -69,7 +69,7 @@ Uses the scale:
 ### Semantic similarity of justification
 Optional embedding-based similarity of answer justifications using BGE-M3 embeddings. This is another way to score the consistency of the LLM output across multiple runs. 
 
-Human - LLM consensus metrics:
+## Human - LLM consensus metrics
 ### Unweighted Cohen's kappa
 All labels are treated as nominal categories, meaning every disagreement is weighted equally regardless of its magnitude.
 ### Weighted lineair Cohen's kappa
@@ -82,7 +82,6 @@ The labels NI, NA, high, low, and unclear are considered non-ordinal. Any compar
 
 Ordinal agreement is calculated as:
 1 - (observed_disagreement / expected_disagreement)​
-
 where expected disagreement is derived from the marginal label distributions.
 
 
