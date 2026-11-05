@@ -91,7 +91,7 @@ def main(args):
 def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--excel", 
-                        default='/Users/vribbens/Documents/VS_scripts/Work/Output/Sys_review/LLM_output_PROBAST/Consensus_filled_LLMmanualadjusted_VSinput.xlsx', 
+                        default='', 
                         help="existing PROBAST workbook (not modified)")
 
     parser.add_argument("--col1", default="Human", help="first column for Cohen's kappa calculation")
