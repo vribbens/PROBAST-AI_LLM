@@ -1,4 +1,4 @@
-# Risk Of Bias and Quality Assessment
+# Risk Of Bias, Quality and Applicability Assessment
 
 Automated risk of bias and quality assessment of AI-based prediction model studies using Large Language Models (LLMs) in a local environment.
 
